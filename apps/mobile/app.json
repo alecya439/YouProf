@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Nostalgic",
+    "slug": "nostalgic",
+    "scheme": "nostalgic",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "platforms": ["ios", "android", "web"],
+    "splash": {
+      "backgroundColor": "#0b1021"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0b1021"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

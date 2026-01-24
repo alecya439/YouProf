@@ -1,0 +1,50 @@
+[
+  {
+    "id": "demo",
+    "title": "French basics",
+    "description": "Simple greetings and essentials.",
+    "visibility": "public",
+    "createdAt": "2026-01-20T20:27:30.230Z",
+    "updatedAt": "2026-01-20T20:27:30.235Z",
+    "terms": [
+      {
+        "id": "1",
+        "term": "Bonjour",
+        "definition": "Hello"
+      },
+      {
+        "id": "2",
+        "term": "Merci",
+        "definition": "Thank you"
+      },
+      {
+        "id": "3",
+        "term": "Au revoir",
+        "definition": "Goodbye"
+      }
+    ]
+  },
+  {
+    "title": "Dermatology",
+    "terms": [
+      {
+        "term": "Epidermis",
+        "definition": "Opperhuid"
+      },
+      {
+        "id": "tmp-1769017515110",
+        "term": "dermis",
+        "definition": "cutis, lederhuid"
+      },
+      {
+        "id": "tmp-1769017579181",
+        "term": "subcutis",
+        "definition": "onderste bind- en vetweefsel"
+      }
+    ],
+    "visibility": "private",
+    "id": "set-1768941164530",
+    "createdAt": "2026-01-20T20:32:44.752Z",
+    "updatedAt": "2026-01-21T17:46:42.862Z"
+  }
+]
