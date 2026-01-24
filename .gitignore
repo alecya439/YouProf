@@ -15,6 +15,8 @@ apps/**/.env
 apps/**/.env.*
 packages/**/.env
 packages/**/.env.*
+*.db
+apps/api/prisma/dev.db
 pnpm-debug.log*
 npm-debug.log*
 yarn-debug.log*
