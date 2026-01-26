@@ -13,11 +13,17 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [streakDays, setStreakDays] = useState<number | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (!token) {
       setIsAuthenticated(false);
+      setUserName(null);
+      setUserEmail(null);
+      setStreakDays(null);
       setLoading(false);
       return;
     }
@@ -34,15 +40,26 @@ export default function HomePage() {
       if (!res.ok) {
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
+        setUserName(null);
+        setUserEmail(null);
+        setStreakDays(null);
         return;
       }
 
+      const user = await res.json();
+      setUserName(user?.name ?? null);
+      setUserEmail(user?.email ?? null);
       setIsAuthenticated(true);
+      const nextStreak = updateDailyStreak();
+      setStreakDays(nextStreak);
       await fetchSets(token);
     } catch (err) {
       console.error('Failed to validate session:', err);
       localStorage.removeItem('authToken');
       setIsAuthenticated(false);
+      setUserName(null);
+      setUserEmail(null);
+      setStreakDays(null);
     } finally {
       setLoading(false);
     }
@@ -72,7 +89,29 @@ export default function HomePage() {
       console.error('Failed to fetch sets:', err);
       setError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsAuthenticated(false);
+      setUserName(null);
+      setUserEmail(null);
+      setStreakDays(null);
     }
+  };
+
+  const updateDailyStreak = () => {
+    const today = new Date();
+    const todayKey = today.toISOString().slice(0, 10);
+    const lastActive = localStorage.getItem('lastActiveDate');
+    const streakRaw = localStorage.getItem('streakDays');
+    const streak = streakRaw ? Number(streakRaw) : 0;
+
+    if (lastActive === todayKey) return streak;
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayKey = yesterday.toISOString().slice(0, 10);
+
+    const nextStreak = lastActive === yesterdayKey ? streak + 1 : 1;
+    localStorage.setItem('streakDays', String(nextStreak));
+    localStorage.setItem('lastActiveDate', todayKey);
+    return nextStreak;
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -91,9 +130,11 @@ export default function HomePage() {
     }
   };
 
+  const displayName = userName || userEmail;
+
   return (
     <main style={{ padding: '48px', display: 'grid', gap: '24px', maxWidth: 1200, margin: '0 auto' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 24 }}>
         <div>
           <p style={{ letterSpacing: 2, color: '#8ea0f6', textTransform: 'uppercase', fontSize: 12 }}>
             Nostalgic
@@ -129,6 +170,39 @@ export default function HomePage() {
             )}
           </div>
         </div>
+        {isAuthenticated && displayName && (
+          <div
+            style={{
+              padding: '10px 16px',
+              borderRadius: 999,
+              border: '1px solid rgba(142,160,246,0.4)',
+              background: 'rgba(142,160,246,0.12)',
+              color: '#f7f7fb',
+              fontWeight: 600,
+              fontSize: 14,
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <span>{displayName}</span>
+            {typeof streakDays === 'number' && (
+              <span
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  background: 'rgba(158,245,192,0.2)',
+                  color: '#9ef5c0',
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {streakDays} day streak
+              </span>
+            )}
+          </div>
+        )}
       </header>
 
       <section style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
