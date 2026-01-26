@@ -29,8 +29,11 @@ export default function LoginPage() {
         return;
       }
 
-      const { token } = await res.json();
+      const { token, user } = await res.json();
       localStorage.setItem('authToken', token);
+      if (user) {
+        localStorage.setItem('authUser', JSON.stringify(user));
+      }
       router.push('/');
     } catch (err) {
       const message = err instanceof Error && err.message

@@ -13,18 +13,13 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [streakDays, setStreakDays] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (!token) {
       setIsAuthenticated(false);
-      setUserName(null);
-      setUserEmail(null);
-      setStreakDays(null);
-      setLoading(false);
+      fetchSets().finally(() => setLoading(false));
       return;
     }
 
@@ -40,26 +35,16 @@ export default function HomePage() {
       if (!res.ok) {
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
-        setUserName(null);
-        setUserEmail(null);
-        setStreakDays(null);
+        await fetchSets();
         return;
       }
-
-      const user = await res.json();
-      setUserName(user?.name ?? null);
-      setUserEmail(user?.email ?? null);
       setIsAuthenticated(true);
-      const nextStreak = updateDailyStreak();
-      setStreakDays(nextStreak);
       await fetchSets(token);
     } catch (err) {
       console.error('Failed to validate session:', err);
       localStorage.removeItem('authToken');
       setIsAuthenticated(false);
-      setUserName(null);
-      setUserEmail(null);
-      setStreakDays(null);
+      await fetchSets();
     } finally {
       setLoading(false);
     }
@@ -89,29 +74,7 @@ export default function HomePage() {
       console.error('Failed to fetch sets:', err);
       setError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsAuthenticated(false);
-      setUserName(null);
-      setUserEmail(null);
-      setStreakDays(null);
     }
-  };
-
-  const updateDailyStreak = () => {
-    const today = new Date();
-    const todayKey = today.toISOString().slice(0, 10);
-    const lastActive = localStorage.getItem('lastActiveDate');
-    const streakRaw = localStorage.getItem('streakDays');
-    const streak = streakRaw ? Number(streakRaw) : 0;
-
-    if (lastActive === todayKey) return streak;
-
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const yesterdayKey = yesterday.toISOString().slice(0, 10);
-
-    const nextStreak = lastActive === yesterdayKey ? streak + 1 : 1;
-    localStorage.setItem('streakDays', String(nextStreak));
-    localStorage.setItem('lastActiveDate', todayKey);
-    return nextStreak;
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -130,7 +93,23 @@ export default function HomePage() {
     }
   };
 
-  const displayName = userName || userEmail;
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredSets = normalizedQuery
+    ? sets.filter((set) => {
+        const title = set.title?.toLowerCase() ?? '';
+        const description = set.description?.toLowerCase() ?? '';
+        const createdBy = set.createdBy?.toLowerCase() ?? '';
+        const termMatch = set.terms?.some((term) =>
+          `${term.term} ${term.definition}`.toLowerCase().includes(normalizedQuery)
+        );
+        return (
+          title.includes(normalizedQuery) ||
+          description.includes(normalizedQuery) ||
+          createdBy.includes(normalizedQuery) ||
+          termMatch
+        );
+      })
+    : sets;
 
   return (
     <main style={{ padding: '48px', display: 'grid', gap: '24px', maxWidth: 1200, margin: '0 auto' }}>
@@ -170,39 +149,7 @@ export default function HomePage() {
             )}
           </div>
         </div>
-        {isAuthenticated && displayName && (
-          <div
-            style={{
-              padding: '10px 16px',
-              borderRadius: 999,
-              border: '1px solid rgba(142,160,246,0.4)',
-              background: 'rgba(142,160,246,0.12)',
-              color: '#f7f7fb',
-              fontWeight: 600,
-              fontSize: 14,
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <span>{displayName}</span>
-            {typeof streakDays === 'number' && (
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  background: 'rgba(158,245,192,0.2)',
-                  color: '#9ef5c0',
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
-                {streakDays} day streak
-              </span>
-            )}
-          </div>
-        )}
+        
       </header>
 
       <section style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
@@ -218,7 +165,7 @@ export default function HomePage() {
         ))}
       </section>
 
-      {!isAuthenticated ? (
+      {!isAuthenticated && (
         <section style={{ textAlign: 'center', padding: '40px 24px', borderRadius: 16, background: 'rgba(142,160,246,0.1)', border: '1px solid rgba(142,160,246,0.3)' }}>
           <h2 style={{ marginBottom: 16 }}>Ready to start learning?</h2>
           <p style={{ color: '#c9cee7', marginBottom: 24 }}>Sign up to create your study sets and track your progress.</p>
@@ -237,17 +184,33 @@ export default function HomePage() {
             </Link>
           </div>
         </section>
-      ) : (
-        <section style={{ display: 'grid', gap: 16 }}>
-          <h2 style={{ margin: 0 }}>Your study sets</h2>
-          {error && <p style={{ color: '#ff6b6b' }}>{error}</p>}
-          {loading ? (
-            <p>Loading...</p>
-          ) : sets.length === 0 ? (
-            <p style={{ color: '#c9cee7' }}>No sets yet. Create one to get started!</p>
+      )}
+
+      <section style={{ display: 'grid', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <h2 style={{ margin: 0 }}>{isAuthenticated ? 'Your study sets' : 'Explore study sets'}</h2>
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search users or subjects"
+            style={{
+              minWidth: 260,
+              padding: '10px 12px',
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.04)',
+              color: '#f7f7fb'
+            }}
+          />
+        </div>
+        {error && <p style={{ color: '#ff6b6b' }}>{error}</p>}
+        {loading ? (
+          <p>Loading...</p>
+        ) : filteredSets.length === 0 ? (
+          <p style={{ color: '#c9cee7' }}>No results for that search.</p>
         ) : (
           <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-            {sets.map((set) => (
+            {filteredSets.map((set) => (
               <div key={set.id} style={{ position: 'relative' }}>
                 <Link
                   href={`/sets/${set.id}`}
@@ -257,32 +220,38 @@ export default function HomePage() {
                     {set.visibility} · {set.terms.length} terms
                   </div>
                   <h3 style={{ margin: '0 0 8px' }}>{set.title}</h3>
+                  {set.createdBy && (
+                    <p style={{ margin: '0 0 6px', color: '#8ea0f6', fontSize: 12 }}>
+                      by {set.createdBy}
+                    </p>
+                  )}
                   {set.description && <p style={{ margin: 0, color: '#c9cee7', fontSize: 14 }}>{set.description}</p>}
                 </Link>
-                <button
-                  onClick={(e) => handleDelete(set.id, e)}
-                  style={{
-                    position: 'absolute',
-                    top: 12,
-                    right: 12,
-                    background: 'rgba(255,50,50,0.15)',
-                    border: '1px solid rgba(255,100,100,0.3)',
-                    borderRadius: 8,
-                    padding: '6px 12px',
-                    color: '#ff6b6b',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    fontWeight: 600
-                  }}
-                >
-                  Delete
-                </button>
+                {isAuthenticated && (
+                  <button
+                    onClick={(e) => handleDelete(set.id, e)}
+                    style={{
+                      position: 'absolute',
+                      top: 12,
+                      right: 12,
+                      background: 'rgba(255,50,50,0.15)',
+                      border: '1px solid rgba(255,100,100,0.3)',
+                      borderRadius: 8,
+                      padding: '6px 12px',
+                      color: '#ff6b6b',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
-        </section>
-      )}
+      </section>
     </main>
   );
 }

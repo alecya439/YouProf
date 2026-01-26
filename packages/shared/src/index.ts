@@ -13,6 +13,7 @@ export type StudySet = {
   title: string;
   description?: string;
   visibility: StudySetVisibility;
+  createdBy?: string;
   terms: StudyTerm[];
   createdAt: string;
   updatedAt: string;

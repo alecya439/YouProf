@@ -3,7 +3,7 @@
 import { StudyTerm } from '@nostalgic/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiUrl } from '../../lib/api';
 
 const emptyTerm = { id: `tmp-${Math.random()}`, term: '', definition: '' } as StudyTerm;
@@ -14,6 +14,21 @@ export default function CreateSetPage() {
   const [description, setDescription] = useState('');
   const [terms, setTerms] = useState<StudyTerm[]>([emptyTerm]);
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setIsAuthenticated(false);
+      return;
+    }
+
+    fetch(apiUrl('/auth/me'), {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((res) => setIsAuthenticated(res.ok))
+      .catch(() => setIsAuthenticated(false));
+  }, []);
 
   const handleAddTerm = () => {
     setTerms([...terms, { id: `tmp-${Math.random()}`, term: '', definition: '' }]);
@@ -30,6 +45,11 @@ export default function CreateSetPage() {
   };
 
   const handleSave = async (isPublic: boolean) => {
+    if (isPublic && !isAuthenticated) {
+      alert('Please log in to publish your set.');
+      return;
+    }
+
     if (!title.trim()) {
       alert('Title is required');
       return;
@@ -41,18 +61,25 @@ export default function CreateSetPage() {
 
     setLoading(true);
     try {
+      const token = localStorage.getItem('authToken');
+      const storedUser = localStorage.getItem('authUser');
+      const user = storedUser ? JSON.parse(storedUser) as { name?: string; email?: string } : undefined;
       const payload = {
         title,
         description: description.trim() || undefined,
         terms: terms.map(({ id: _, ...t }) => t),
         visibility: isPublic ? 'public' : 'private',
-        id: `set-${Date.now()}`
+        id: `set-${Date.now()}`,
+        createdBy: user?.name || user?.email
       };
       console.log('Sending payload:', payload);
       
       const res = await fetch(apiUrl('/sets'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify(payload)
       });
       
@@ -134,14 +161,19 @@ export default function CreateSetPage() {
           ))}
         </div>
       </section>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', alignItems: 'center' }}>
+        {!isAuthenticated && (
+          <span style={{ color: '#c9cee7', fontSize: 14 }}>
+            Log in to publish sets.
+          </span>
+        )}
         <button style={ghostButton} onClick={() => handleSave(false)} disabled={loading}>
           Save draft
         </button>
         <button
           style={{ ...pillButton, background: '#9ef5c0', color: '#0b1021' }}
           onClick={() => handleSave(true)}
-          disabled={loading}
+          disabled={loading || !isAuthenticated}
         >
           {loading ? 'Publishing...' : 'Publish'}
         </button>

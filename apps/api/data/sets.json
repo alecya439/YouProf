@@ -42,9 +42,28 @@
         "definition": "onderste bind- en vetweefsel"
       }
     ],
-    "visibility": "private",
+    "visibility": "public",
     "id": "set-1768941164530",
     "createdAt": "2026-01-20T20:32:44.752Z",
-    "updatedAt": "2026-01-21T17:46:42.862Z"
+    "updatedAt": "2026-01-26T19:31:18.618Z",
+    "createdBy": "alecpijnacker"
+  },
+  {
+    "title": "Turkish",
+    "terms": [
+      {
+        "term": "Merhaba",
+        "definition": "Hello"
+      },
+      {
+        "term": "Nasilsin?",
+        "definition": "How are you?"
+      }
+    ],
+    "visibility": "public",
+    "id": "set-1769455780656",
+    "createdBy": "alecpijnacker",
+    "createdAt": "2026-01-26T19:29:40.694Z",
+    "updatedAt": "2026-01-26T19:29:45.182Z"
   }
 ]

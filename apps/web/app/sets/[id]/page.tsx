@@ -21,6 +21,8 @@ export default function SetDetailPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [progress, setProgress] = useState<Map<string, TermProgress>>(new Map());
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     const fetchSet = async () => {
@@ -52,6 +54,20 @@ export default function SetDetailPage() {
     fetchSet();
   }, [params.id]);
 
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setIsAuthenticated(false);
+      return;
+    }
+
+    fetch(apiUrl('/auth/me'), {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((res) => setIsAuthenticated(res.ok))
+      .catch(() => setIsAuthenticated(false));
+  }, []);
+
   const handleSave = async () => {
     if (!set) return;
     try {
@@ -74,6 +90,47 @@ export default function SetDetailPage() {
       router.push('/');
     } catch (err) {
       console.error('Failed to delete set:', err);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!set) return;
+    const token = localStorage.getItem('authToken');
+    const storedUser = localStorage.getItem('authUser');
+    const user = storedUser ? JSON.parse(storedUser) as { name?: string; email?: string } : undefined;
+    if (!token) {
+      alert('Please log in to publish this set.');
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      const res = await fetch(apiUrl(`/sets/${params.id}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: set.title,
+          description: set.description,
+          terms: set.terms,
+          visibility: 'public',
+          createdBy: user?.name || user?.email
+        })
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Failed to publish (HTTP ${res.status})`);
+      }
+
+      const updated = await res.json();
+      setSet(updated);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to publish set');
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -130,7 +187,25 @@ export default function SetDetailPage() {
               <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 8 }}>{set.title}</h1>
               <p style={{ color: '#c9cee7', fontSize: '1.1rem' }}>{set.description}</p>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {set.visibility === 'private' && (
+                <button
+                  onClick={handlePublish}
+                  disabled={publishing || !isAuthenticated}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(158,245,192,0.4)',
+                    background: publishing ? 'rgba(255,255,255,0.06)' : 'linear-gradient(145deg, #9ef5c0, #8dd9ac)',
+                    color: publishing ? '#999' : '#1a1d2d',
+                    cursor: publishing || !isAuthenticated ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: 700
+                  }}
+                >
+                  {publishing ? 'Publishing...' : 'Publish'}
+                </button>
+              )}
               <button onClick={() => setIsEditing(true)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#f7f7fb', cursor: 'pointer', fontSize: '0.9rem' }}>
                 Edit
               </button>

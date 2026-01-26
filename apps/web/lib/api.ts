@@ -1,4 +1,9 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api';
+const fallbackBaseUrl =
+  process.env.NODE_ENV === 'development'
+    ? 'http://localhost:3002'
+    : '/api';
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? fallbackBaseUrl;
 
 export const apiUrl = (path: string) => {
   if (!path) return API_BASE_URL;

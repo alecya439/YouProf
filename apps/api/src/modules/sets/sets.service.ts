@@ -56,8 +56,9 @@ export class SetsService {
     }
   }
 
-  findAll(): StudySet[] {
-    return this.sets;
+  findAll(onlyPublic = false): StudySet[] {
+    if (!onlyPublic) return this.sets;
+    return this.sets.filter((set) => set.visibility === 'public');
   }
 
   findOne(id: string): StudySet | undefined {
