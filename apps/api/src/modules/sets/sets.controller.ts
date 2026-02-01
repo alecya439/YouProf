@@ -13,9 +13,9 @@ export class SetsController {
   private getAuthPayload(req: { headers?: Record<string, string | string[]> }): { sub?: string; email?: string } | null {
     const raw = req.headers?.authorization;
     const auth = Array.isArray(raw) ? raw[0] : raw;
-    if (!auth) return false;
+    if (!auth) return null;
     const [type, token] = auth.split(' ');
-    if (type !== 'Bearer' || !token) return false;
+    if (type !== 'Bearer' || !token) return null;
     try {
       return this.jwtService.verify(token) as { sub?: string; email?: string };
     } catch {

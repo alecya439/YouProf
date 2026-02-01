@@ -7,8 +7,10 @@ import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 120
+      throttlers: [{
+        ttl: 60,
+        limit: 120
+      }]
     }),
     SetsModule,
     AuthModule
