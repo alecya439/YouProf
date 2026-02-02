@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cross-env PORT=3002 ts-node -r tsconfig-paths/register src/main.ts",
     "start": "nest start",
-    "start:prod": "node dist/main.js",
+    "start:prod": "node dist/apps/api/src/main.js",
     "build": "nest build",
     "postinstall": "prisma generate",
     "lint": "eslint 'src/**/*.{ts,tsx}'"
